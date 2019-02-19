@@ -1,0 +1,145 @@
+#!/usr/bin/env python2
+
+import argparse
+import re
+import os
+import os.path
+import itertools
+
+def diriter(parent_iter, root='.', reverse=False, dirs_only=True):
+    for parent in parent_iter:
+        try:
+            entries = sorted(os.listdir(os.path.join(root, parent)))
+        except OSError:
+            pass
+        for entry in (reversed(entries) if reverse else entries):
+            path = os.path.join(parent, entry)
+
+            if dirs_only and not os.path.isdir(os.path.join(root, path)):
+                continue
+
+            yield path
+
+def chain_repeat(f, i, ntimes):
+    for _ in range(ntimes):
+        i = f(i)
+    return i
+
+def limititer(it, a=None, b=None):
+    for entry in it:
+        if a is not None and entry < a[:len(entry)]:
+            continue
+
+        if b is not None and entry > b[:len(entry)]:
+            continue
+
+        yield entry
+
+
+DESCRIPTION = """
+Search for files in the Bolidozor file structure. File paths matching
+the selection criteria printed on the standard output, each separated by a newline.
+ 
+This program finds files at paths in the form of
+
+  REPO_ROOT/COLLECTION/YYYY/MM/DD/HH/FILENAME
+
+where COLLECTION stands for three levels of path which select the station
+and the type of records, e.g. ddmtrebic/DDMTREBIC-R3/snapshots. By default,
+collections are filtered with the regex '[^/]+/[A-Z-]+-R\d+/(snapshots|meteors)'.
+
+Dates in command line arguments are expected to be in the form of YYYYMMDDHHMMSSMMM,
+the same format that filenames in the Bolidozor tree begin with. The later digits
+may be omitted, in which case they are filled in to make the search most inclusive.
+"""
+
+EXAMPLES = """
+Examples
+--------
+
+Count all raw recordings from 2017-12-04. (10441 at the time of writing)
+
+  $ bzfind -s 20171204 -u 20171204 -f .+_raws.fits | wc -l
+
+List stations which have produced snapshots in the last 24 hours. And count
+how many per station. (works with BSD date)
+
+  $ bzfind -s `date -v -1d +%Y%m%d%H%M%S` -c '.+-R\d+/snapshots' -f .+_snap.fits \\
+        | grep -oE '^[^/]+/[^/]+' | uniq -c
+
+Bugs
+----
+
+ - bzfind doesn't support the 'data' directory as it doesn't have an hourly
+   subdirectory
+
+.
+"""
+
+NUMERICAL = re.compile(r'^\d{1,17}$')
+def date_path(s, fill_digit):
+    if not NUMERICAL.match(s):
+        raise TypeError('bad date: %s' % s)
+    s = s + str(fill_digit) * (17-len(s))
+
+    # YYYY/MM/DD/HH/YYYYMMDDHHMMSSMMM
+    return "%s/%s/%s/%s/%s" % (s[0:4], s[4:6], s[6:8], s[8:10], s)
+
+def main():
+    parser = argparse.ArgumentParser(description=DESCRIPTION, epilog=EXAMPLES,
+                formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('-r', dest='root', default='/storage/bolidozor',
+                        help='repository root (default: /storage/bolidozor)')
+    parser.add_argument('-s', dest='since_date', type=lambda s: date_path(s, "0"),
+                        help='limit the time of origin from below (default: unlimited)')
+    parser.add_argument('-u', dest='upto_date', type=lambda s: date_path(s, "9"),
+                        help='limit the time of origin from above (default: unlimited)')
+
+    parser.add_argument('-c', dest='coll_regex', type=lambda x: re.compile('^' + x + '$'),
+                        default=re.compile(r'[^/]+/[A-Z-]+-R\d+/(snapshots|meteors|data)'),
+                        help='filter the COLLECTION path fragment (station name '
+                                    'and type of records) with a regex')
+    parser.add_argument('-f', dest='fn_regex', type=lambda x: re.compile('^' + x + '$'),
+                        default=re.compile(r'^.+$'),
+                        help='filter the filename with a regex (default: .+)')
+
+    args = parser.parse_args()
+
+    reverse = args.upto_date is not None \
+              and args.since_date is None
+
+    collections = filter(
+        args.coll_regex.match,
+        chain_repeat(lambda x: diriter(x, root=args.root), [''], 3)
+    )
+
+    def files_in_collection(coll, a=None, b=None, reverse=False, root='.'):
+        dirs = chain_repeat(
+            lambda x: limititer(diriter(x, root=os.path.join(root, coll),
+                                        reverse=reverse), a=a, b=b),
+            [''], 4
+        )
+
+        files = limititer(diriter(dirs, root=os.path.join(root, coll),
+                                  reverse=reverse, dirs_only=False), a=a, b=b)
+
+        return (os.path.join(coll, path) for path in files)
+
+    unfiltered_files = itertools.chain(*(
+        files_in_collection(coll, a=args.since_date, b=args.upto_date,
+                            reverse=reverse, root=args.root)
+        for coll in collections
+    ))
+
+    files = (
+        path for path in unfiltered_files
+        if bool(args.fn_regex.match(os.path.basename(path)))
+    )
+
+    for file in files:
+        print(file)
+
+if __name__ == "__main__":
+    main()
+
+
