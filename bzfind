@@ -38,7 +38,7 @@ def limititer(it, a=None, b=None):
 
 DESCRIPTION = """
 Search for files in the Bolidozor file structure. File paths matching
-the selection criteria printed on the standard output, each separated by a newline.
+the selection criteria are printed on the standard output separated by a newline.
  
 This program finds files at paths in the form of
 
