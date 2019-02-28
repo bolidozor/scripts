@@ -27,7 +27,7 @@ for line in all_data:
         datetime_obj = datetime.datetime.strptime(date_and_time_str,'%d-%m-%Y %H:%M:%S') # converts the string with date and time into a datetime object
         datetime_obj_subtracted = datetime_obj - datetime.timedelta(minutes=5) #subtracts 5 minutes from datetime_obj
         keep_dates_and_times_as_obj.append(datetime_obj_subtracted)
-        datetime_obj_subtracted_str = datetime_obj_subtracted.strftime('%d%m%H%M') #creates a correct format for our command
+        datetime_obj_subtracted_str = datetime_obj_subtracted.strftime('%m%d%H%M') #creates a correct format for our command
         keep_dates_and_times_correct_format.append(datetime_obj_subtracted_str)
     
 
