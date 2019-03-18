@@ -1,3 +1,4 @@
+import bzremote
 from sys import argv
 import datetime
 import subprocess
@@ -30,11 +31,16 @@ for filename in argv[1:]: # enable using *.txt formulation
             keep_dates_and_times_correct_format.append(datetime_obj_subtracted_str)
      
 
-    print keep_dates_and_times_correct_format
+    print (keep_dates_and_times_correct_format)
 
     for time_strings in keep_dates_and_times_correct_format:
-        print('at' + ' -t ' + str(time_strings) + ' -f' +' FUMA-event-rec.sh')
+        #print('at' + ' -t ' + str(time_strings) + ' -f' +' FUMA-event-rec.sh')
         #subprocess.call(['at', ' -t ', time_strings, '-f', 'FUMA-event-rec.sh'])
 
-	
 
+        #print ('./bzremote ' + 'ssh ' + '% ' + 'at' + ' -t ' + str(time_strings) + ' -f' + ' FUMA-event-rec.sh')
+        #subprocess.call(['./bzremote ', 'ssh ', '% ', 'at', ' -t ', time_strings, '-f', 'FUMA-event-rec.sh'])
+	
+        print('./bzremote ' + 'ssh ' + '% ' + 'ls')
+	#subprocess.call(['./bzremote ', 'ssh ', '% ', 'ls'])
+ 
