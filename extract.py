@@ -44,5 +44,5 @@ for filename in argv[1:]: # enable using *.txt formulation
         #subprocess.call(['./bzremote ', 'ssh ', '% ', 'at', ' -t ', time_strings, '-f', 'FUMA-event-rec.sh'])
 	
         #print('./bzremote ' + 'ssh ' + '% ' + 'ls')
-	subprocess.call(['./bzremote ', 'ssh ', '% ', 'ls'])
+        subprocess.call(['./bzremote ', 'ssh ', '% ', 'ls'])
  
