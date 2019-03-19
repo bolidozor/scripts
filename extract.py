@@ -1,8 +1,10 @@
-import bzremote
+#import bzremote
+import imp
 from sys import argv
 import datetime
 import subprocess
 
+bzremote = imp.load_source('bzremote', './bzremote')
 
 for filename in argv[1:]: # enable using *.txt formulation
     f = open(filename,"r")
